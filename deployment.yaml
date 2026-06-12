@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: node-app-container
-          image: node-app:v1
+          image: jack9005/node-app:latest
           imagePullPolicy: Never
 
           ports:
