@@ -29,9 +29,9 @@ pipeline {
             steps {
                 sh '''
                 docker rm -f test-container || true
-                docker run -d --name test-container $DOCKER_IMAGE
+                docker run -d -p 3001:3000 --name test-container $DOCKER_IMAGE
                 sleep 5
-                docker exec test-container curl localhost:3000
+                curl http://host.docker.internal:3001 || curl http://localhost:3001
                 '''
             }
         }
