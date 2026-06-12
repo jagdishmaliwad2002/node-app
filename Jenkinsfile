@@ -12,17 +12,13 @@ stages {
 
     stage('Build Docker Image') {
         steps {
-            sh '''
-            docker build -t jack9005/node-app:latest .
-            '''
+            sh 'docker build -t jack9005/node-app:latest .'
         }
     }
 
     stage('Push Docker Image') {
         steps {
-            sh '''
-            docker push jack9005/node-app:latest
-            '''
+            sh 'docker push jack9005/node-app:latest'
         }
     }
 
