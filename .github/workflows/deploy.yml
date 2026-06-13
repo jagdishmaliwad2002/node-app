@@ -7,7 +7,7 @@ on:
 
 env:
   DOCKER_IMAGE: jack9005/mahiopsai:latest
-  KUBECTL_IMAGE: bitnami/kubectl:1.30
+  KUBECTL_IMAGE: bitnami/kubectl:latest   ✅
 
 jobs:
   deploy:
