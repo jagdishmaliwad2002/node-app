@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  DOCKER_IMAGE: jack9005/mahiopsai:latest
+  DOCKER_IMAGE: jack9005/node-app:latest   ✅
   KUBECTL_IMAGE: bitnami/kubectl:latest   ✅
 
 jobs:
