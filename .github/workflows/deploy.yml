@@ -28,24 +28,23 @@ jobs:
       run: |
         mkdir -p $HOME/.kube
         echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
-        echo "--- kubeconfig check ---"
+        echo "--- kubeconfig line count ---"
+        wc -l $HOME/.kube/config
+        echo "--- first lines ---"
         head -5 $HOME/.kube/config
 
     - name: Deploy to Kubernetes
       run: |
         docker run --rm \
-          -v $HOME/.kube/config:/.kube/config \
-          -e KUBECONFIG=/.kube/config \
+          -v $HOME/.kube/config:/tmp/kubeconfig \
           -v $(pwd):/app -w /app \
-          ${{ env.KUBECTL_IMAGE }} apply -f deployment.yaml --validate=false
+          ${{ env.KUBECTL_IMAGE }} --kubeconfig=/tmp/kubeconfig apply -f deployment.yaml --validate=false
 
         docker run --rm \
-          -v $HOME/.kube/config:/.kube/config \
-          -e KUBECONFIG=/.kube/config \
+          -v $HOME/.kube/config:/tmp/kubeconfig \
           -v $(pwd):/app -w /app \
-          ${{ env.KUBECTL_IMAGE }} apply -f service.yaml --validate=false
+          ${{ env.KUBECTL_IMAGE }} --kubeconfig=/tmp/kubeconfig apply -f service.yaml --validate=false
 
         docker run --rm \
-          -v $HOME/.kube/config:/.kube/config \
-          -e KUBECONFIG=/.kube/config \
-          ${{ env.KUBECTL_IMAGE }} rollout status deployment/node-app-deployment
+          -v $HOME/.kube/config:/tmp/kubeconfig \
+          ${{ env.KUBECTL_IMAGE }} --kubeconfig=/tmp/kubeconfig rollout status deployment/node-app-deployment
