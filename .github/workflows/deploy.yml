@@ -3,9 +3,11 @@ on:
   push:
     branches:
       - main
+
 env:
   DOCKER_IMAGE: jack9005/node-app:latest
   KUBECTL_IMAGE: bitnami/kubectl:latest
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -26,9 +28,24 @@ jobs:
       run: |
         mkdir -p $HOME/.kube
         echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
+        echo "--- kubeconfig check ---"
+        head -5 $HOME/.kube/config
 
     - name: Deploy to Kubernetes
       run: |
-        docker run --rm -v $HOME/.kube:/root/.kube -v $(pwd):/app -w /app ${{ env.KUBECTL_IMAGE }} apply -f deployment.yaml
-        docker run --rm -v $HOME/.kube:/root/.kube -v $(pwd):/app -w /app ${{ env.KUBECTL_IMAGE }} apply -f service.yaml
-        docker run --rm -v $HOME/.kube:/root/.kube ${{ env.KUBECTL_IMAGE }} rollout status deployment/node-app-deployment
+        docker run --rm \
+          -v $HOME/.kube/config:/.kube/config \
+          -e KUBECONFIG=/.kube/config \
+          -v $(pwd):/app -w /app \
+          ${{ env.KUBECTL_IMAGE }} apply -f deployment.yaml --validate=false
+
+        docker run --rm \
+          -v $HOME/.kube/config:/.kube/config \
+          -e KUBECONFIG=/.kube/config \
+          -v $(pwd):/app -w /app \
+          ${{ env.KUBECTL_IMAGE }} apply -f service.yaml --validate=false
+
+        docker run --rm \
+          -v $HOME/.kube/config:/.kube/config \
+          -e KUBECONFIG=/.kube/config \
+          ${{ env.KUBECTL_IMAGE }} rollout status deployment/node-app-deployment
