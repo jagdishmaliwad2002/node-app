@@ -40,7 +40,7 @@ pipeline {
 
                 echo "Testing application inside container..."
                 for i in {1..10}; do
-                  docker exec test-container curl -f http://localhost:3000 && exit 0
+                  docker exec test-container wget -qO- http://localhost:3000 && exit 0
                   echo "Retrying..."
                   sleep 2
                 done
