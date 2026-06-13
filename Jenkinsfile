@@ -3,30 +3,32 @@ pipeline {
 
     environment {
         IMAGE_NAME = "jack9005/node-app"
+        IMAGE_TAG = "${BUILD_NUMBER}"
         CONTAINER_NAME = "test-container"
     }
 
     stages {
 
-        stage('Clone Code') {
-            steps {
-                git 'https://github.com/jagdishmaliwad2002/node-app.git'
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 sh '''
-                docker build -t $IMAGE_NAME:latest .
+                docker build -t $IMAGE_NAME:$IMAGE_TAG .
                 '''
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                sh '''
-                docker push $IMAGE_NAME:latest
-                '''
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    docker push $IMAGE_NAME:$IMAGE_TAG
+                    '''
+                }
             }
         }
 
@@ -35,14 +37,14 @@ pipeline {
                 sh '''
                 docker rm -f $CONTAINER_NAME || true
 
-                docker run -d -p 3001:3000 --name $CONTAINER_NAME $IMAGE_NAME:latest
+                docker run -d -p 3001:3000 --name $CONTAINER_NAME $IMAGE_NAME:$IMAGE_TAG
 
+                echo "Waiting for app..."
                 sleep 5
 
-                echo "Checking container logs..."
                 docker logs $CONTAINER_NAME
 
-                echo "Testing app inside container..."
+                echo "Testing app..."
                 docker exec $CONTAINER_NAME wget -qO- http://localhost:3000
                 '''
             }
@@ -51,8 +53,8 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                kubectl apply -f deployment.yaml
-                kubectl apply -f service.yaml
+                kubectl set image deployment/node-app-deployment \
+                node-app=$IMAGE_NAME:$IMAGE_TAG
 
                 kubectl rollout status deployment/node-app-deployment
                 '''
