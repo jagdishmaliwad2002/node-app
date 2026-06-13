@@ -29,9 +29,24 @@ pipeline {
             steps {
                 sh '''
                 docker rm -f test-container || true
-                docker run -d -p 3001:3000 --name test-container $DOCKER_IMAGE
-                sleep 5
-                curl http://host.docker.internal:3001 || curl http://localhost:3001
+
+                docker run -d --name test-container $DOCKER_IMAGE
+
+                echo "Waiting for container to start..."
+                sleep 10
+
+                echo "Container logs:"
+                docker logs test-container
+
+                echo "Testing application inside container..."
+                for i in {1..10}; do
+                  docker exec test-container curl -f http://localhost:3000 && exit 0
+                  echo "Retrying..."
+                  sleep 2
+                done
+
+                echo "App test failed!"
+                exit 1
                 '''
             }
         }
