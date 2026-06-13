@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: node-app-deployment
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: node-app
@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
       - name: node-app
-        image: jack9005/node-app:latest
+        image: jack9005/mahiopsai:latest
         ports:
         - containerPort: 3000
