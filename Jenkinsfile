@@ -2,66 +2,69 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "jack9005/node-app:latest"
+        IMAGE_NAME = "jack9005/node-app"
+        CONTAINER_NAME = "test-container"
     }
 
     stages {
 
         stage('Clone Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/jagdishmaliwad2002/node-app.git'
+                git 'https://github.com/jagdishmaliwad2002/node-app.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $DOCKER_IMAGE .'
+                sh '''
+                docker build -t $IMAGE_NAME:latest .
+                '''
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                sh 'docker push $DOCKER_IMAGE'
+                sh '''
+                docker push $IMAGE_NAME:latest
+                '''
             }
         }
 
         stage('Run Test Container') {
             steps {
                 sh '''
-                docker rm -f test-container || true
+                docker rm -f $CONTAINER_NAME || true
 
-                docker run -d --name test-container $DOCKER_IMAGE
+                docker run -d -p 3001:3000 --name $CONTAINER_NAME $IMAGE_NAME:latest
 
-                echo "Waiting for container to start..."
-                sleep 10
+                sleep 5
 
-                echo "Container logs:"
-                docker logs test-container
+                echo "Checking container logs..."
+                docker logs $CONTAINER_NAME
 
-                echo "Testing application inside container..."
-                for i in {1..10}; do
-                  docker exec test-container wget -qO- http://localhost:3000 && exit 0
-                  echo "Retrying..."
-                  sleep 2
-                done
-
-                echo "App test failed!"
-                exit 1
+                echo "Testing app inside container..."
+                docker exec $CONTAINER_NAME wget -qO- http://localhost:3000
                 '''
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh 'kubectl apply -f deployment.yaml'
-                sh 'kubectl apply -f service.yaml'
+                sh '''
+                kubectl apply -f deployment.yaml
+                kubectl apply -f service.yaml
+
+                kubectl rollout status deployment/node-app-deployment
+                '''
             }
         }
     }
 
     post {
         always {
-            sh 'docker rm -f test-container || true'
+            sh '''
+            docker rm -f $CONTAINER_NAME || true
+            '''
         }
     }
 }
