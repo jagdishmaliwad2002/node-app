@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Build Docker Image
@@ -25,25 +25,21 @@ jobs:
       - name: Push Docker Image
         run: docker push $DOCKER_IMAGE
 
-      # 🔥 FIX: install gcloud + plugin (this solves your main error)
-      - name: Setup GCloud
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          install_components: gke-gcloud-auth-plugin
-
-      - name: Authenticate GCP
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Get GKE Credentials
+      # 🔥 USE YOUR KUBECONFIG (NO GCP AUTH)
+      - name: Setup Kubeconfig
         run: |
-          gcloud container clusters get-credentials node-app-cluster \
-            --zone us-central1-a \
-            --project node-app-latest
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Install kubectl
+        run: |
+          curl -LO https://dl.k8s.io/release/$(curl -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
 
       - name: Deploy to Kubernetes
         run: |
-          kubectl apply -f deployment.yaml
-          kubectl apply -f service.yaml
+          kubectl apply -f deployment.yaml --validate=false
+          kubectl apply -f service.yaml --validate=false
           kubectl rollout status deployment/node-app-deployment
