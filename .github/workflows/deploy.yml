@@ -25,7 +25,6 @@ jobs:
       - name: Push Docker Image
         run: docker push $DOCKER_IMAGE
 
-      # 🔥 USE YOUR KUBECONFIG (NO GCP AUTH)
       - name: Setup Kubeconfig
         run: |
           mkdir -p $HOME/.kube
@@ -38,7 +37,7 @@ jobs:
           chmod +x kubectl
           sudo mv kubectl /usr/local/bin/
 
-      - name: Deploy to Kubernetes
+      - name: Deploy
         run: |
           kubectl apply -f deployment.yaml --validate=false
           kubectl apply -f service.yaml --validate=false
