@@ -1,50 +1,48 @@
 name: CI/CD Pipeline
+
 on:
-  push:
-    branches:
-      - main
+push:
+branches:
+- main
 
 env:
-  DOCKER_IMAGE: jack9005/node-app:latest
-  KUBECTL_IMAGE: bitnami/kubectl:latest
+DOCKER_IMAGE: jack9005/node-app:latest
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+deploy:
+runs-on: ubuntu-latest
 
-    - name: Build Docker Image
-      run: docker build -t ${{ env.DOCKER_IMAGE }} .
+```
+steps:
+  - name: Checkout Code
+    uses: actions/checkout@v4
 
-    - name: Login to Docker Hub
-      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+  - name: Build Docker Image
+    run: |
+      docker build -t ${{ env.DOCKER_IMAGE }} .
 
-    - name: Push Docker Image
-      run: docker push ${{ env.DOCKER_IMAGE }}
+  - name: Login to Docker Hub
+    run: |
+      echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-    - name: Setup Kubeconfig
-      run: |
-        mkdir -p $HOME/.kube
-        echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
-        echo "--- kubeconfig line count ---"
-        wc -l $HOME/.kube/config
-        echo "--- first lines ---"
-        head -5 $HOME/.kube/config
+  - name: Push Docker Image
+    run: |
+      docker push ${{ env.DOCKER_IMAGE }}
 
-    - name: Deploy to Kubernetes
-      run: |
-        docker run --rm \
-          -v $HOME/.kube/config:/tmp/kubeconfig \
-          -v $(pwd):/app -w /app \
-          ${{ env.KUBECTL_IMAGE }} --kubeconfig=/tmp/kubeconfig apply -f deployment.yaml --validate=false
+  - name: Setup Kubeconfig
+    run: |
+      mkdir -p $HOME/.kube
+      echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+      chmod 600 $HOME/.kube/config
 
-        docker run --rm \
-          -v $HOME/.kube/config:/tmp/kubeconfig \
-          -v $(pwd):/app -w /app \
-          ${{ env.KUBECTL_IMAGE }} --kubeconfig=/tmp/kubeconfig apply -f service.yaml --validate=false
+  - name: Install kubectl
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y kubectl
 
-        docker run --rm \
-          -v $HOME/.kube/config:/tmp/kubeconfig \
-          ${{ env.KUBECTL_IMAGE }} --kubeconfig=/tmp/kubeconfig rollout status deployment/node-app-deployment
+  - name: Deploy to Kubernetes
+    run: |
+      kubectl apply -f deployment.yaml
+      kubectl apply -f service.yaml
+      kubectl rollout status deployment/node-app-deployment
+```
