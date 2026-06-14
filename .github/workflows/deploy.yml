@@ -1,4 +1,4 @@
-name: CI-CD
+name: CICD
 
 on:
 push:
@@ -17,16 +17,16 @@ env:
 steps:
   - uses: actions/checkout@v4
 
-  - name: Build Image
+  - name: Build
     run: docker build -t $DOCKER_IMAGE .
 
-  - name: Docker Login
+  - name: Login
     run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-  - name: Push Image
+  - name: Push
     run: docker push $DOCKER_IMAGE
 
-  - name: Setup Kubeconfig
+  - name: Kubeconfig
     run: |
       mkdir -p $HOME/.kube
       echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
@@ -34,11 +34,11 @@ steps:
 
   - name: Install kubectl
     run: |
-      curl -LO https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
+      curl -LO https://dl.k8s.io/release/$(curl -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
       chmod +x kubectl
       sudo mv kubectl /usr/local/bin/
 
-  - name: Install gcloud plugin
+  - name: Install plugin
     run: |
       sudo apt-get update
       sudo apt-get install -y google-cloud-cli
