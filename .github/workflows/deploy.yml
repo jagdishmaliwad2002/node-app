@@ -1,53 +1,46 @@
 name: CI/CD Pipeline
+
 on:
-  push:
-    branches:
-      - main
+push:
+branches:
+- main
 
 env:
-  DOCKER_IMAGE: jack9005/node-app:latest
+DOCKER_IMAGE: jack9005/node-app:latest
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+deploy:
+runs-on: ubuntu-latest
 
-      - name: Build Docker Image
-        run: docker build -t ${{ env.DOCKER_IMAGE }} .
+```
+steps:
+  - name: Checkout Code
+    uses: actions/checkout@v4
 
-      - name: Login to Docker Hub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+  - name: Build Docker Image
+    run: docker build -t ${{ env.DOCKER_IMAGE }} .
 
-      - name: Push Docker Image
-        run: docker push ${{ env.DOCKER_IMAGE }}
+  - name: Login to Docker Hub
+    run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      - name: Setup Kubeconfig
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
-          kubectl config current-context --kubeconfig=$HOME/.kube/config || echo "WARNING: kubeconfig may be invalid"
+  - name: Push Docker Image
+    run: docker push ${{ env.DOCKER_IMAGE }}
 
-      - name: Install kubectl
-        run: |
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
+  - name: Setup Kubeconfig
+    run: |
+      mkdir -p $HOME/.kube
+      echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+      chmod 600 $HOME/.kube/config
 
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+  - name: Install kubectl
+    run: |
+      curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+      chmod +x kubectl
+      sudo mv kubectl /usr/local/bin/
 
-      - name: Install gke-gcloud-auth-plugin
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          install_components: gke-gcloud-auth-plugin
-
-      - name: Deploy to Kubernetes
-        run: |
-          kubectl apply -f deployment.yaml
-          kubectl apply -f service.yaml
-          kubectl rollout status deployment/node-app-deployment
+  - name: Deploy to Kubernetes
+    run: |
+      kubectl apply -f deployment.yaml
+      kubectl apply -f service.yaml
+      kubectl rollout status deployment/node-app-deployment
+```
