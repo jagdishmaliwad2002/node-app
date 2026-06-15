@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: EC2 CI/CD Pipeline
 
 on:
   push:
@@ -25,44 +25,14 @@ jobs:
       - name: Push Docker Image
         run: docker push $DOCKER_IMAGE
 
-      - name: Setup Kubeconfig
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
-
-      - name: Install kubectl
-        run: |
-          curl -LO https://dl.k8s.io/release/$(curl -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
-
-      # ✅ INSTALL GOOGLE CLOUD SDK (PROPER WAY)
-      - name: Install Google Cloud SDK
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y apt-transport-https ca-certificates gnupg curl
-          
-          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
-            sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
-
-          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
-            sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
-
-          sudo apt-get update
-          sudo apt-get install -y google-cloud-cli
-
-      # ✅ INSTALL GKE AUTH PLUGIN (NOW WORKS)
-      - name: Install GKE Auth Plugin
-        run: |
-          sudo apt-get install -y google-cloud-cli-gke-gcloud-auth-plugin
-
-      # ✅ ENABLE PLUGIN
-      - name: Enable GKE Plugin
-        run: echo "USE_GKE_GCLOUD_AUTH_PLUGIN=True" >> $GITHUB_ENV
-
-      - name: Deploy
-        run: |
-          kubectl apply -f deployment.yaml --validate=false
-          kubectl apply -f service.yaml --validate=false
-          kubectl rollout status deployment/node-app-deployment
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: 13.203.229.65
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker pull $DOCKER_IMAGE
+            docker stop node-app || true
+            docker rm node-app || true
+            docker run -d -p 3000:3000 --name node-app $DOCKER_IMAGE
